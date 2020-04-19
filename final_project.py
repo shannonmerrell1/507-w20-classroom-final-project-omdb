@@ -118,33 +118,6 @@ insert_id_title = '''
     '''
 
 
-
-
-# # print(movies_list_combined[:3])
-# movie_count = c.execute("Select count(*) from movies")
-# if movie_count < 1:
-#     params = {'s':s, 'apikey':api_key}
-#     make_search_api_request(url, params=params)
-    
-
-# for movie in movies_list_combined:
-#     print(movie['Title'])
-#     print("="*7,movie.keys())
-#     query = '''
-#         INSERT INTO Movies (Title, Year, ImdbId)
-#         VALUES (?,?,?,?,?,?,?,?)
-#         '''
-#     values = [movie.get('Title'), int(movie.get('Year')), movie.get('Rated'), int(movie.get('Released')), movie.get('Runtime'), movie.get('Genre'), movie.get('Director'), movie.get('Actors')]
-    
-#     c.execute(query,values)
-
-# conn.commit()
-
-
-
-# google_results = requests.get('http://google.com/search?q=something')
-# print(google_results.text)
-
 if __name__ == "__main__":
     # user_input = input("What movie would you like to query?")
  
@@ -189,6 +162,32 @@ if __name__ == "__main__":
     
     
 
+
+
+# # print(movies_list_combined[:3])
+# movie_count = c.execute("Select count(*) from movies")
+# if movie_count < 1:
+#     params = {'s':s, 'apikey':api_key}
+#     make_search_api_request(url, params=params)
+    
+
+# for movie in movies_list_combined:
+#     print(movie['Title'])
+#     print("="*7,movie.keys())
+#     query = '''
+#         INSERT INTO Movies (Title, Year, ImdbId)
+#         VALUES (?,?,?,?,?,?,?,?)
+#         '''
+#     values = [movie.get('Title'), int(movie.get('Year')), movie.get('Rated'), int(movie.get('Released')), movie.get('Runtime'), movie.get('Genre'), movie.get('Director'), movie.get('Actors')]
+    
+#     c.execute(query,values)
+
+# conn.commit()
+
+
+
+# google_results = requests.get('http://google.com/search?q=something')
+# print(google_results.text)
     
 
 
