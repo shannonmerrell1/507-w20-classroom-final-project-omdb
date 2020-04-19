@@ -194,11 +194,6 @@ if __name__ == "__main__":
 
 
 
-# id = movie['imdbId']
-# url = make_id_url(id)
-# 
-# download the json //func
-# cache it //func
-# save to sql //func
+
     
     
