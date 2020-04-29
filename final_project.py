@@ -2,9 +2,102 @@ import requests
 import json
 import sqlite3
 import math
+from flask import Flask, render_template, request
+from bs4 import BeautifulSoup
+import re
 
-conn = sqlite3.connect('movies.db')
+db_name = 'movies.db'
+conn = sqlite3.connect(db_name)
 c = conn.cursor()
+
+app = Flask(__name__)
+
+@app.route('/')
+def index():
+    return render_template('index.html') # just the static HTML
+
+
+@app.route('/handle_form', methods=['GET','POST'])
+def handle_the_form():
+
+    
+    movie = request.form["movie"]
+    
+    query_sql = 'SELECT * FROM MOVIES WHERE TITLE= "{}"'.format(movie)
+    connection = sqlite3.connect(db_name)
+    cur = connection.cursor() 
+    
+    # print(query_sql)
+
+    results = cur.execute(query_sql)   
+    result = cur.fetchone()
+    imdbID = result[0]
+    
+    
+    
+        # name = result['Title']
+        # url = result['']
+        # yield f'<a href="{url}">Click to Learn more about {name}</a>'
+        # print(result)
+
+
+    return add_movie_details(imdbID)
+    
+
+
+@app.route('/details/<imdbid>', methods=['GET'])
+def add_movie_details(imdbid):
+
+    details = get_movie_dictionary_details(imdbid)
+    movie_name= details['Title']
+    release_year= details['Year']
+    director= details['Director']
+    actors= details['Actors']
+    gross = details.get('BoxOffice', 'Unknown')
+
+
+    end_point_google='http://google.com/search' 
+    google_results = requests.get(end_point_google, params= {'q':movie_name})
+    soup = BeautifulSoup(google_results.text, 'html.parser')
+    images_news_list = []
+    for link in soup.findAll('a', attrs={'href': re.compile("^http://")}):
+        images_news_list.append(link.get('href'))
+
+    images = images_news_list[1]
+    # news = images_news_list[2]
+    
+
+
+    return render_template('details.html', 
+                    movie_name= movie_name,
+                    release_year= release_year,
+                    director= director, 
+                    actors= actors, 
+                    gross= gross, 
+                    images= images)
+
+    
+
+
+    # secret = request.form["secret"]
+    # color = request.form["colors"]
+    # feeling = request.form["feeling"]
+
+    # like_pizza = "like_pizza" in request.form.keys()
+    # like_sushi = "like_sushi" in request.form.keys()
+    # like_massaman = "like_massaman" in request.form.keys()
+
+    # return render_template('response2.html', 
+    #     name=name, 
+    #     secret=secret,
+    #     color=color, 
+    #     feeling=feeling, 
+    #     like_pizza=like_pizza,
+    #     like_sushi=like_sushi,
+    #     like_massaman=like_massaman)
+
+
+
 
 api_key = "eb392c3f"
 base_url = 'http://www.omdbapi.com/'
@@ -50,10 +143,11 @@ def save_cache(cache_dict):
     fw.close()
 
 
-def construct_url(genre_marvel):
-    url = base_url + '?s=' + genre_marvel + '&apikey=' + api_key
-    print (url)
+def construct_url(search_word):
+    url = base_url + '?s=' + search_word + '&apikey=' + api_key
+    # print (url)
     return url
+
 
 
 def construct_id_url(imdbid):
@@ -61,36 +155,36 @@ def construct_id_url(imdbid):
     return url
 
 def make_search_api_request(url, my_cache, params={}):
-
-    # cache_key = construct_url(genre_marvel)
         response = requests.get(url, params=params).json()
         return response
 
 
  
+
 def download_repeat_marvel_movies():
-
-    
-    url = construct_url('marvel')
-    movie_dictionary = make_search_api_request(url, my_cache)
-    page_length = len(movie_dictionary['Search'])
-    total_results = int(movie_dictionary['totalResults'])
-    pages = math.ceil(total_results/page_length)
-    print(pages)
-
-    movies_list_combined = []
     movies_found = set()
-    for page in range(pages):
-        params = {}
-        params['page']=page + 1
-        movie_page = make_search_api_request(url, my_cache, params=params)
-        for movie in movie_page['Search']:
-            imdbID = movie['imdbID']
-            if imdbID not in movies_found: 
-                movies_list_combined.append(movie)
-                movies_found.add(imdbID)
+    movies_list_combined = []
+    movie_titles = ["Iron Man", "Thor", "The Incredible Hulk", "Avengers", "Captain America", "Guardians of the Galaxy", "Dr. Strange", "Antman", "Civil War",
+    "Spider Man", "Incredible Hulk"]
+    for movie in movie_titles:
+        url = construct_url(movie)
+        movie_dictionary = make_search_api_request(url, my_cache)
+        page_length = len(movie_dictionary['Search'])
+        total_results = int(movie_dictionary['totalResults'])
+        pages = math.ceil(total_results/page_length)
+        # print(pages)
 
-    # print(len(movies_list_combined))
+        
+        for page in range(pages):
+            params = {}
+            params['page']=page + 1
+            movie_page = make_search_api_request(url, my_cache, params=params)
+            for movie in movie_page['Search']:
+                imdbID = movie['imdbID']
+                if imdbID not in movies_found:
+                    movies_list_combined.append(movie)
+                    movies_found.add(imdbID)
+
     return movies_list_combined
 
 
@@ -118,48 +212,45 @@ insert_id_title = '''
     '''
 
 
-if __name__ == "__main__":
-    # user_input = input("What movie would you like to query?")
+
+# for movie in movie_list_combined:
+    #     # print(movie) 
+    #     id = movie['imdbID']
  
+
+def get_movie_dictionary_details(id):
+    url = construct_id_url(id)
+
+    if url in my_cache: 
+        long_movie_dict = my_cache[url] 
+    else: 
+        long_movie_dict = requests.get(url).json()
+        cache_dict[url] = long_movie_dict
+    
+    return long_movie_dict
+
+
+
+if __name__ == "__main__":
+    
+
     cache_dict = open_cache()
 
-    movie_list_combined = download_repeat_marvel_movies()
+    # movie_list_combined = download_repeat_marvel_movies()
+    # c.execute(drop_movies) 
+    # c.execute(create_movies)   
+    # conn.commit()
+    # for movie in movie_list_combined:
+    #     list_for_sql = key_values_to_list(movie, ['imdbID', 'Title'])
+    #     c.execute(insert_id_title, list_for_sql)
+    # conn.commit()
 
-
-
-#put the characteristics of the movie length combined into sql 
-#get the id from sql with the user input title, then translate id to an api search
-#then with the api search put all of the characteristics into json, the local cache
-#then give the characteristics back to the user. 
-
-    c.execute(drop_movies) 
-    c.execute(create_movies)   
-    conn.commit()
-
-
-    for movie in movie_list_combined:
-        list_for_sql = key_values_to_list(movie, ['imdbID', 'Title'])
-        print(list_for_sql)
-        c.execute(insert_id_title, list_for_sql)
-   
-    conn.commit()
-   
-
-    for movie in movie_list_combined:
-        # print(movie) 
-        id = movie['imdbID']
-        url = construct_id_url(id)
-
-        if url in my_cache: 
-            long_movie_dict = my_cache[url] 
-        else: 
-            long_movie_dict = requests.get(url).json()
-            cache_dict[url] = long_movie_dict
-    print(long_movie_dict.keys())
     
     save_cache(cache_dict)
 
-    
+
+
+    app.run(debug=True)
     
 
 
