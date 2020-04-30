@@ -43,9 +43,3 @@ app = Flask(__name__)
 Use the program by selecting a Marvel movie from the drop down menu.  
 
 
-
-## Acknowledgments
-
-* Hat tip to anyone whose code was used
-* Inspiration
-* etc
