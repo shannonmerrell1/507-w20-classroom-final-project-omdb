@@ -7,6 +7,27 @@
 </head>
 <body>
 
+    <form action="/handle_form" method="POST">
+        <p>
+            What Marvel movie do you want to learn  about? 
+            <select name="movie">
+                <option value="The Avengers"> The Avengers </option>
+                <option value="Iron Man">Iron Man</option>
+                <option value="Thor">Thor</option>
+                <option value="Captain America">Captain America</option>
+                <option value="Guardians of the Galaxy">Guardians of the Galaxy</option>
+                <option value="Dr Strange">Dr. Strange</option>
+                <option value="The Antman">Antman</option>
+                <option value="Captain America: Civil War">Captain America: Civil War</option>
+                <option value="Spider Man">Spider Man</option>
+                <option value="The Incredible Hulk">The Incredible Hulk</option>
+            </select>
+
+
+        </p>
+        <input type="submit" value="Submit Form"/>
+    </form>
+
     <h1>Facts about {{movie_name}}</h1>
 
     <p>Release year: {{release_year}}</p>
@@ -14,13 +35,21 @@
     <p>Actors: {{actors}}</p>
     <p>Worldwide gross: {{gross}}</p>
 
-    <p>Here are some images for the movie {{movie_name}}:</p>
+    <p>Here are some images from google for the movie {{movie_name}}:</p>
 
     <ul>
         <li><a href="{{images}}">Images</a></li>
         </ul>
-
     </ul>
+
+    <p>Here are some images from the New York Times for the movie {{movie_name}}:</p>
+
+    <ol id="pictures">
+        {% for url_picture in pictures %}
+            <li><a href="{{ url_picture }}">{{ 'New York Times Picture'}}</a></li>
+        {% endfor %}
+    </ol>
+
 
 </body>
 </html>

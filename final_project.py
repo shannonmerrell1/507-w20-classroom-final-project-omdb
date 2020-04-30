@@ -5,6 +5,9 @@ import math
 from flask import Flask, render_template, request
 from bs4 import BeautifulSoup
 import re
+import secrets
+api_omdb = secrets.omdb_api_key
+api_nyt = secrets.nyt_api_key
 
 db_name = 'movies.db'
 conn = sqlite3.connect(db_name)
@@ -32,18 +35,9 @@ def handle_the_form():
     results = cur.execute(query_sql)   
     result = cur.fetchone()
     imdbID = result[0]
-    
-    
-    
-        # name = result['Title']
-        # url = result['']
-        # yield f'<a href="{url}">Click to Learn more about {name}</a>'
-        # print(result)
-
 
     return add_movie_details(imdbID)
     
-
 
 @app.route('/details/<imdbid>', methods=['GET'])
 def add_movie_details(imdbid):
@@ -55,7 +49,6 @@ def add_movie_details(imdbid):
     actors= details['Actors']
     gross = details.get('BoxOffice', 'Unknown')
 
-
     end_point_google='http://google.com/search' 
     google_results = requests.get(end_point_google, params= {'q':movie_name})
     soup = BeautifulSoup(google_results.text, 'html.parser')
@@ -64,44 +57,49 @@ def add_movie_details(imdbid):
         images_news_list.append(link.get('href'))
 
     images = images_news_list[1]
-    # news = images_news_list[2]
+
+
+    url = 'https://api.nytimes.com/svc/search/v2/articlesearch.json'
+    print(api_nyt)
+    resp_dict = requests.get(url, params={"q":movie_name, 'fq': 'news_desk:Movies', "api-key": api_nyt}).json()
+    # print(resp_dict)
     
 
 
+    conn = sqlite3.connect(db_name)
+    cursor = conn.cursor()
+
+    pictures = []
+    for item in (resp_dict['response']['docs']):
+        multimedia = item.get('multimedia')
+        if multimedia:
+            pic_url= 'https://static01.nyt.com/'+multimedia[0]['url']
+            pictures.append(pic_url)
+    print(pictures)
+
+
+    # for image_url in images:
+    #      cursor.execute(insert_images_url, (imdbid, image_url))
+    # conn.commit()
+
+    
     return render_template('details.html', 
                     movie_name= movie_name,
                     release_year= release_year,
                     director= director, 
                     actors= actors, 
                     gross= gross, 
-                    images= images)
+                    images= images,
+                    len = len(pictures),
+                    pictures= pictures)
+
 
     
 
 
-    # secret = request.form["secret"]
-    # color = request.form["colors"]
-    # feeling = request.form["feeling"]
-
-    # like_pizza = "like_pizza" in request.form.keys()
-    # like_sushi = "like_sushi" in request.form.keys()
-    # like_massaman = "like_massaman" in request.form.keys()
-
-    # return render_template('response2.html', 
-    #     name=name, 
-    #     secret=secret,
-    #     color=color, 
-    #     feeling=feeling, 
-    #     like_pizza=like_pizza,
-    #     like_sushi=like_sushi,
-    #     like_massaman=like_massaman)
 
 
-
-
-api_key = "eb392c3f"
 base_url = 'http://www.omdbapi.com/'
-# s = 'marvel'
 my_cache = {}
 
 CACHE_FILENAME = "movies_cache.json"
@@ -144,14 +142,16 @@ def save_cache(cache_dict):
 
 
 def construct_url(search_word):
-    url = base_url + '?s=' + search_word + '&apikey=' + api_key
+    url = base_url + '?s=' + search_word + '&apikey=' + api_omdb
     # print (url)
     return url
 
+def construct_duck_url(search_word):
+    url = duck_url + '?s=' + search_word
 
 
 def construct_id_url(imdbid):
-    url = base_url + '?i=' + imdbid + '&apikey=' + api_key 
+    url = base_url + '?i=' + imdbid + '&apikey=' + api_omdb
     return url
 
 def make_search_api_request(url, my_cache, params={}):
@@ -211,11 +211,22 @@ insert_id_title = '''
     VALUES (?, ?)
     '''
 
+drop_images = '''
+    DROP TABLE IF EXISTS "Images";
+'''
 
+create_images = '''
+    CREATE TABLE IF NOT EXISTS "Images" (
+        "ROW_ID" AUTO INCREMENT PRIMARY KEY,
+        "IMDBID"  TEXT NOT NULL, 
+        "IMAGE_URL"  TEXT NOT NULL
+    )
+'''
 
-# for movie in movie_list_combined:
-    #     # print(movie) 
-    #     id = movie['imdbID']
+insert_images_url = '''
+    INSERT INTO Images 
+    VALUES (NULL, ?, ?)
+'''
  
 
 def get_movie_dictionary_details(id):
@@ -233,7 +244,6 @@ def get_movie_dictionary_details(id):
 
 if __name__ == "__main__":
     
-
     cache_dict = open_cache()
 
     # movie_list_combined = download_repeat_marvel_movies()
@@ -245,10 +255,13 @@ if __name__ == "__main__":
     #     c.execute(insert_id_title, list_for_sql)
     # conn.commit()
 
-    
+    c.execute(drop_images)
+    c.execute(create_images)
+    conn.commit()
+    conn.close()
+
+
     save_cache(cache_dict)
-
-
 
     app.run(debug=True)
     
